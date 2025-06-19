@@ -33,7 +33,7 @@ WORKDIR /app
 
 # Copy renv.lock and R files
 COPY renv.lock .
-COPY water analysis 1.R .
+COPY water_analysis.R .
 
 # Restore R packages using renv
 RUN R -e "renv::restore()"
@@ -42,5 +42,5 @@ RUN R -e "renv::restore()"
 EXPOSE 3838
 
 # Run Shiny app
-CMD ["R", "-e", "shiny::runApp('/app/water analysis 1.R', host='0.0.0.0', port=3838)"]
+CMD ["R", "-e", "shiny::runApp('/app/water_analysis.R', host='0.0.0.0', port=3838)"]
 
