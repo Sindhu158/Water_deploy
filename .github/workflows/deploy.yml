@@ -1,0 +1,65 @@
+name: Docker Build and Deploy Shiny App
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ground-water:v1
+      
+      - name: Deploy to Server via SSH
+        run: |
+          # Setup SSH key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/ssh_private_key
+          chmod 600 /tmp/ssh_private_key
+
+          # Test SSH key file
+          if [ ! -s /tmp/ssh_private_key ]; then echo "Error: SSH private key file is empty"; exit 1; fi
+
+          # Deploy using SSH
+          ssh -o StrictHostKeyChecking=no -i /tmp/ssh_private_key -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} '
+            # Log in to Docker Hub
+            docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+
+            # Stop and remove existing container (if running)
+            if [ "$(docker ps -q --filter name=sindhu-proj)" ]; then
+              docker stop sindhu-proj || true
+              docker rm -f sindhu-proj || true
+            fi
+
+            # Pull the latest Docker image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ground-water:v1
+
+            # Run the container
+            docker run -d \
+              --restart=unless-stopped \
+              --name sindhu-proj \
+              -p 6577:3838 \
+              ${{ secrets.DOCKER_USERNAME }}/ground-water:v1
+          '
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f /tmp/ssh_private_key
