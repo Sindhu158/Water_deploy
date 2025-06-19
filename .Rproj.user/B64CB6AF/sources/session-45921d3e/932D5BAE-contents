@@ -1,0 +1,31 @@
+library(shiny)
+
+ui <- fluidPage(
+  selectInput("species","Select Species",choices = c("setosa","versicolor","virginica")),
+  plotOutput("speciesplot")
+)
+
+server <- function(input,output,session){
+  
+  speciesdata <- reactive({
+    iris %>% 
+      filter(Species == input$Species)
+  })
+
+  
+  library(tidyverse)
+  library(shiny)
+  library(janitor)
+  
+  read_csv("INDIA-AQI-DATA-2015-2020.csv")
+  
+  ui <- fluidPage(
+    tableOutput("tb1")
+  )
+  
+  server <- function(input,output,session){
+    
+    speciesdata <- reactive({
+      iris %>% 
+        filter(Species == input$Species)
+    })

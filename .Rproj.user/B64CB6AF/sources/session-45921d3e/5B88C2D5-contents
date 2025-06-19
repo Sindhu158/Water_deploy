@@ -1,0 +1,101 @@
+library(tidyverse)
+library(janitor)
+library(stringr)
+
+
+dir(path="10_Property_stolen_and_recovered.csv")
+
+
+#1. Read csv and clean column names and print column names 
+read_csv("10_Property_stolen_and_recovered.csv") %>%
+  clean_names() -> data1
+colnames(data1)
+
+ #2. Rename area_name to state_ut
+ data1 %>%
+  rename(state_ut = area_name)
+
+#3. How many state_ut are there?
+
+  n_distinct(data1$state_ut)
+ 
+
+#4.How many crime groups are there and what are those?
+  unique_crime_groups <- unique(data1$state_ut)
+length(unique_crime_groups)
+unique_crime_groups
+
+#5. What is “Total Property” in group_name and what should we do?
+ data1 %>%
+  filter(group_name != "Total Property") -> data2
+ print(data)
+
+ #6.What is the total no of property stolrn cases and total value-All india
+ sum(data$cases_property_stolen, na.rm = TRUE) -> total_stolen_cases
+ sum(data$value_of_property_stolen, na.rm = TRUE) ->total_stolen_value
+ 
+ cat("Total Stolen Cases (All India):", total_stolen_cases, "\n")
+ cat("Total Value of Property Stolen (Rs.):", total_stolen_value, "\n")
+ 
+ 
+ 
+ #7.What is the total no of property stolen cases and total value-All india-year wise.
+ #(With table and plot)
+ 
+ data2 %>%
+   group_by(year) %>%
+   summarise(
+     total_cases = sum(cases_property_stolen, na.rm = TRUE),
+     total_value = sum(value_of_property_stolen, na.rm = TRUE)
+   ) %>%
+   arrange(year)
+ 
+ print(data2)
+ 
+#8. States with no of cases,plot the same
+
+ property_filtered %>%
+   group_by(state_ut) %>%
+   summarise(total_cases = sum(cases_property_stolen, na.rm = TRUE)) %>%
+   arrange(desc(total_cases)) -> statewise_cases
+ 
+ ggplot(statewise_cases, aes(x = reorder(state_ut, total_cases), y = total_cases)) +
+   geom_col(fill = "orange") +
+   coord_flip() +
+   labs(title = "Total Property Stolen Cases by State/UT",
+        x = "State/UT",
+        y = "Number of Cases") +
+   theme_minimal()
+
+ 
+ 
+#9.Correlation plot between stolen and recover
+ 
+ property_filtered %>%
+   select(value_of_property_stolen,
+          value_of_property_recovered) %>%
+   cor(use = "complete.obs") -> cor_matrix
+ 
+ print(cor_matrix)
+ 
+ # Plot
+ corrplot(cor_matrix, method = "circle", type = "upper")
+ 
+ # Q10: Year-wise Stolen vs Recovered cases plot (5 marks)
+ property_filtered %>%
+   group_by(year) %>%
+   summarise(
+     stolen = sum(cases_property_stolen, na.rm = TRUE),
+     recovered = sum(cases_property_recovered, na.rm = TRUE)
+   ) -> yearly_cases
+ 
+ ggplot(yearly_cases, aes(x = year)) +
+   geom_line(aes(y = stolen, color = "Stolen"), size = 1.2) +
+   geom_line(aes(y = recovered, color = "Recovered"), size = 1.2) +
+   labs(title = "Stolen vs Recovered Property Cases Year-wise",
+        x = "Year",
+        y = "Number of Cases",
+        color = "Legend") +
+   scale_color_manual(values = c("Stolen" = "red", "Recovered" = "blue")) +
+   theme_minimal()
+ 
